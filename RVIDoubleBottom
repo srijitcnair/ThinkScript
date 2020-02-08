@@ -1,0 +1,48 @@
+declare lower;
+
+input rviPeriod = 2;
+input lookBack = 10;
+
+plot rvi = RelativeVolatilityIndex(2, 14, AverageType.SIMPLE);
+
+
+
+def flIndex = fold i = 1 to lookBack with flSignal=0
+    while flSignal == 0 do
+    if getValue(rvi,i+1,lookBack) > getValue(rvi,i,lookBack)
+        and getValue(rvi,i,lookBack) < getValue(rvi,i-1,lookBack)
+     then i else 0;
+
+def flValue = roundup(getValue(rvi, flIndex, lookBack),0);
+
+def fhIndex = fold j = 1 to lookBack with fhSignal=0
+    while fhSignal == 0 do
+    if getValue(rvi,j+1,lookBack) < getValue(rvi,j,lookBack)
+        and getValue(rvi,j,lookBack) > getValue(rvi,j-1,lookBack)
+     then j else 0;
+
+def fhValue = roundup(getValue(rvi,fhIndex, lookBack),0);
+
+def slIndex = fold k = 1 to lookBack with slSignal=0
+    while slSignal == 0 do
+    if getValue(rvi,k+1,lookBack) > getValue(rvi,k,lookBack)
+        and getValue(rvi,k,lookBack) < getValue(rvi,k-1,lookBack)
+        and k > flIndex
+     then k else 0;
+
+def slValue = roundup(getValue(rvi, slIndex, lookBack),0);
+
+
+plot signal =
+    if
+        #rvi > 65 and
+        flIndex >0 and
+        flIndex < fhIndex and
+        slIndex > flIndex and
+        flValue < rvi and
+        fhValue > flValue and
+        fhValue < rvi-5 and
+        slValue < 50 and
+        slValue < flValue-5 and
+        slValue < fhValue then 70 else 0;
+
