@@ -1,0 +1,32 @@
+declare lower;
+
+input fastLength = 7;
+input medLength = 14;
+input slowLength = 28;
+
+def trRng = TrueRange(high, close, low);
+
+def trRngFast = sum(trRng, fastLength);
+def trRngMed = sum(trRng, medLength);
+def trRngSlow = sum(trRng, slowLength);
+
+def diff = close - Min(close[1], low);
+
+def diffFast = sum(diff, fastLength);
+def diffMed = sum(diff, medLength);
+def diffSlow = sum(diff, slowLength);
+
+def factorFast = slowLength / fastLength;
+def factorMed = slowLength / medLength;
+
+def valFast = (diffFast / trRngFast) * factorFast;
+def valMed = (diffMed / trRngMed) * factorMed;
+def valSlow = (diffSlow / trRngSlow);
+
+plot UltOsc = if trRngFast == 0 or trRngMed == 0 or trRngSlow == 0 then 0 
+else (valFast + valMed + valSlow) / (factorFast + factorMed + 1);
+UltOsc.SetDefaultColor(GetColor(1));
+
+plot ll = .30;
+plot hh = .70;
+plot mm = .50;

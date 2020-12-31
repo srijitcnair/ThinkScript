@@ -1,0 +1,41 @@
+def isBuyingTime=if secondsFromTime(0800)>=0 and secondstillTime(1500)>=0 then 1 else 0;
+def isOpen=if secondsFromTime(0800)>=0 and secondstillTime(1600)>=0 then 1 else 0;
+
+plot sma13 = MovAvgExponential(close,13);
+sma13.SetDefaultColor(Color.Red);
+
+plot sma50 = MovAvgExponential(close,50);
+sma50.SetDefaultColor(Color.Green);
+
+plot sma200 = MovAvgExponential(close,200);
+sma200.SetDefaultColor(Color.Yellow);
+
+def sma13Band = if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 50 else 5;
+
+
+def RSIPeriod = if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 4 else 2;
+
+def RSIVal = RSI(length = RSIPeriod).rsi;
+
+def upPriceMove = if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 50 else 5;
+def stopPriceMove =  if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 50 else 5;
+
+
+###
+def buyCondition = RSIVal > 80 and close>sma13 
+and close <=(sma13 + sma13Band) 
+and sma13 > sma50 and sma50 > sma200 
+and RSIVal > RSIVal[1] 
+and isBuyingTime ==1
+and close > close[1] and close > open and close[1] > open[1] ;
+
+
+AddOrder(OrderType.BUY_TO_OPEN,buyCondition , name = "Buy", tickcolor = Color.BLUE, arrowcolor = Color.BLUE, tradeSize = 1, price = open[-1]) ;
+
+def entryPrice = entryPrice();
+def sellCondition = high >= (entryPrice + upPriceMove) 
+or close <= entryPrice - stopPriceMove
+or isopen ==0;
+
+AddOrder(OrderType.SELL_TO_CLOSE,sellCondition 
+, tickcolor = Color.ORANGE, arrowcolor = Color.ORANGE, name = "Sell", tradeSize = 1, price = open[-1]);

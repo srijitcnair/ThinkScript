@@ -1,0 +1,27 @@
+input RSIPeriod = 3;
+input CumLength = 2;
+input BuyMark = 25;
+input SellMark = 65;
+input upPriceMove = 5;
+input stopPriceMove = 20;
+
+def sma200 = 0;#MovAvgExponential(close,200);
+
+def RSIVal = RSI(length = RSIPeriod).rsi;
+
+def RSICumul = (fold index = 0 to CumLength with cumrsi = 0 do cumrsi + RSIVal[index]);
+def os = BuyMark;
+def ob = SellMark;
+
+
+###
+def buyCondition =  close > sma200 and RSICumul crosses above os;
+def sellCondition = close crosses below sma200 or RSIVal crosses below ob;
+
+AddOrder(OrderType.BUY_TO_OPEN,buyCondition , name = "Buy", tickcolor = Color.BLUE, arrowcolor = Color.BLUE, tradeSize = 1, price = open[-1]) ;
+
+def entryPrice = entryPrice();
+
+AddOrder(OrderType.SELL_TO_CLOSE,sellCondition 
+#or close > entryPrice + upPriceMove or close < entryPrice - stopPriceMove
+, tickcolor = Color.ORANGE, arrowcolor = Color.ORANGE, name = "Sell", tradeSize = 1, price = open[-1]);

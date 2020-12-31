@@ -1,0 +1,37 @@
+def prevDayClose = close(period = AggregationPeriod.DAY);
+def prevDayOpen = open(period = AggregationPeriod.DAY);
+def prevDayHigh = high(period = AggregationPeriod.DAY);
+def prevDayLow = low(period = AggregationPeriod.DAY);
+
+def dailyRange = prevDayHigh - prevDayLow;
+plot top20PercentDailyRange = prevDayLow + (dailyRange  * 0.75);
+top20PercentDailyRange.setdefaultColor(Color.GREEN);
+
+plot bottom20PercentDailyRange = prevDayLow + (dailyRange * .25);
+bottom20PercentDailyRange.setdefaultColor(Color.GREEN);
+
+def minimumMovePoints = if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 20 else 5;
+
+plot testLineLow = prevDayLow - minimumMovePoints;
+testLineLow.setdefaultColor(Color.YELLOW);
+
+plot testLineHigh = prevDayHigh + minimumMovePoints;
+testLineHigh.setdefaultColor(Color.YELLOW);
+
+def upPriceMove = if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 20 else 5;
+def stopPriceMove =  if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 50 else 5;
+
+
+def todayLow = Lowest(data = LOW[-1]);
+
+#Buy condition
+def buyCondition = prevDayOpen >= top20PercentDailyRange and prevDayClose <= bottom20PercentDailyRange
+and todayLow <= testLineLow and close[-1] > prevDayLow;
+
+AddOrder(OrderType.BUY_TO_OPEN,buyCondition , name = "Buy", tickcolor = Color.BLUE, arrowcolor = Color.BLUE, tradeSize = 1, price = open[-2]) ;
+
+def entryPrice = entryPrice();
+
+AddOrder(OrderType.SELL_TO_CLOSE,high[-1] >= (entryPrice + upPriceMove) 
+or close[-1] <= todayLow
+, tickcolor = Color.ORANGE, arrowcolor = Color.ORANGE, name = "Sell", tradeSize = 1, price = open[-2]);

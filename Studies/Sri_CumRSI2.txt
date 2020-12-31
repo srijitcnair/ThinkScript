@@ -1,0 +1,39 @@
+declare lower;
+input RSIPeriod = 3;
+input CumLength = 2;
+input BuyMark =25;
+input SellMark = 65;
+input showBreakoutSignals = yes;
+
+
+
+def Daily200SMA = Average(close,200);
+AddLabel(yes,Daily200SMA);
+
+plot RSIVal = RSI(length = RSIPeriod).rsi;
+
+plot RSICumul = (fold index = 0 to CumLength with cumrsi = 0 do cumrsi + RSIVal[index]);
+plot os = BuyMark;
+plot ob = SellMark;
+
+plot UpSignal = if  RSICumul crosses above os then os else Double.NaN;
+plot DownSignal = if  RSIVal crosses below ob then ob else Double.NaN;
+
+UpSignal.SetHiding(!showBreakoutSignals);
+DownSignal.SetHiding(!showBreakoutSignals);
+
+RSICumul.DefineColor("OverBought", GetColor(5));
+RSICumul.DefineColor("Normal", GetColor(7));
+RSICumul.DefineColor("OverSold", GetColor(1));
+RSICumul.AssignValueColor(if RSICumul > ob then RSICumul.color("OverBought") else if RSICumul < os then RSICumul.color("OverSold") else RSICumul.color("Normal"));
+os.SetDefaultColor(GetColor(8));
+ob.SetDefaultColor(GetColor(8));
+UpSignal.SetDefaultColor(Color.UPTICK);
+UpSignal.SetPaintingStrategy(PaintingStrategy.ARROW_UP);
+DownSignal.SetDefaultColor(Color.DOWNTICK);
+DownSignal.SetPaintingStrategy(PaintingStrategy.ARROW_DOWN);
+
+
+
+
+

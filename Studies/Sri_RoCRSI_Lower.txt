@@ -1,0 +1,6 @@
+declare lower;
+def onePeriodRoC  = close(period = AggregationPeriod.DAY)[1] - close(period = AggregationPeriod.DAY)[2];
+plot RoCRSI = RSI(price = onePeriodRoC, length = 3);
+
+plot ll = 30;
+plot hh = 70;

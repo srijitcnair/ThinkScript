@@ -1,0 +1,170 @@
+#Study: FW_FT_3xStochastics
+#
+# Adapted from: ToS Fisher Transform
+#
+# Modifications by ToS User: managematics
+#
+#hint:<b>Fisher Stochastics (FS)</b>\nHelps time changes in trend by transforming price and transforming stochastics using a statistical method called Fisher Transform.  The original Fisher Transform and the three transformed stochastics work together to provide both early warning and later confirmation of a trend change.
+#
+#   Additional details available in the user guide which can
+#   be found at:  [insert link here]
+#
+#   Discussion of input parameters:
+#
+#   fisher len: number of bars to look at for fisher transform.
+#               Default is 5.
+#
+#   ob os: Position of overbought and oversold lines.  Default
+#          is 120.  Description is in user guide.
+#
+#   hide soap:
+#     yes(defaul): Does not show vertical lines for SOAP
+#                  signals.
+#     no: Shows soap signals as vertical lines.
+#
+# Revision history:
+#  Rev       Date        Change Description
+# ------     ----------  ------------------
+# 01F        2010-01-23  Original
+# 02-V01     2010-02-20  - Added ability to scale study so
+#                           arrows are visible on screen
+#                        - Increased default size of magenta arrow
+# 02-V02     2010-11-16  - Fixed a bug defining the fisher value was causing the blue
+#                          fisher line to not plot - due to changes in Release 1754/1755
+#
+
+declare lower;
+
+
+input FisherLen = 5;
+input ObOs = 120;
+input hideSoap = yes;
+input arrow_location = {default "Partially_Onscreen", "Always_Onscreen", "Possibly_Offscreen"};
+
+
+def margin;
+
+switch (arrow_location) {
+case Always_Onscreen:
+    margin = 2.0;
+case Partially_Onscreen:
+    margin = 0.5;
+case Possibly_Offscreen:
+    margin = 0;
+}
+
+def CountChg;
+rec SOAPCount;
+def maxHigh = Highest(high, FisherLen);
+def minLow = Lowest(low, FisherLen);
+def k1v = Max(-100, Min(100, (StochasticFull(KPeriod = 5, slowing_period = 3,averageType=averageType.EXPONENTIAL))) - 50) / 50.01;
+def k2v = Max(-100, Min(100, (StochasticFull(KPeriod = 8, slowing_period = 5,averageType=averageType.EXPONENTIAL))) - 50) / 50.01;
+def k3v = Max(-100, Min(100, (StochasticFull(KPeriod = 17, slowing_period = 5,averageType=averageType.EXPONENTIAL))) - 50) / 50.01;
+def R1v = Max(-100, Min(100, reference RSI(2)) - 50) / 50.01;
+
+
+
+
+
+
+
+plot ZeroLine = 0;
+ZeroLine.SetDefaultColor(Color.WHITE);
+
+plot obl = ObOs / 100;
+plot osl = -ObOs / 100;
+obl.SetDefaultColor(Color.RED);
+osl.SetDefaultColor(Color.RED);
+
+if k2v > 0
+Then {
+    CountChg = if k1v <= k2v and k1v[1] > k2v[1] and k2v[1] > 0 then -1 else 0;
+    SOAPCount = compoundvalue(1,  Min (0, SOAPCount[1]) + CountChg, 0);
+}
+else {
+    CountChg = if k1v >= k2v and k1v[1] < k2v[1] and k2v[1] <= 0 then 1 else 0;
+    SOAPCount = compoundvalue (1,  Max (0, SOAPCount[1]) + CountChg, 0);
+}
+
+AddVerticalLine (!hideSoap and ((k2v > 0 and k1v <= k2v and k1v[1] > k2v[1]) or (k2v < 0 and k1v >= k2v and k1v[1] < k2v[1])),
+if AbsValue(SOAPCount) > 1 then "AIM" + SOAPCount else if AbsValue(SOAPCount) == 1 then "READY" + SOAPCount else if AbsValue(SOAPCount) < -1 then "READY" + SOAPCount else if AbsValue(SOAPCount) == 0 then "READY" + SOAPCount else "AIM",
+if SOAPCount > 1 then
+    Color.GREEN
+else if SOAPCount == 1 then
+    Color.GREEN
+    # was CYAN
+else if SOAPCount < -1 then
+    Color.RED
+else Color.RED);
+# WAS YELLOW
+AddLabel(yes, SOAPCount);
+#AddCloud(if SOAPCount == -1 then SOAPCount else " ", if SOAPCount == 0 then SOAPCount #else " ", Color.RED);
+
+rec fish1 = compoundvalue(1, 0.5 * (Log((1 + k1v) / (1 - k1v)) + fish1[1]), 0);
+rec fish2 = compoundvalue(1,   0.5 * (Log((1 + k2v) / (1 - k2v)) + fish2[1]), 0);
+rec fish3 = compoundvalue(1, 0.5 * (Log((1 + k3v) / (1 - k3v)) + fish3[1]), 0);
+rec fish4 = compoundvalue(1, 0.5 * (Log((1 + R1v) / (1 - R1v)) + fish4[1]), 0);
+rec value = compoundvalue(1, if maxHigh - minLow == 0 then 0 else 0.66 * ((close - minLow) / (maxHigh - minLow) - 0.5) + 0.67 * value[1], 0);
+def truncValue = if value > 0.99 then 0.999 else if value < -0.99 then -0.999 else value;
+rec fish = compoundvalue(1, 0.5 * (Log((1 + truncValue) / (1 - truncValue)) + fish[1]), 0);
+
+plot FS5x3 = fish1;
+plot FS8x5 = fish2;
+plot FS17x5 = fish3;
+#Plot FR2 = fish4;
+plot FT = fish;
+
+plot FS17x5u = if (Sign (fish3 - fish3[1]) > Sign (fish3[1] - fish3[2])) then fish3[1] else Double.NaN;
+plot FS8x5u = if (Sign (fish2 - fish2[1]) > Sign (fish2[1] - fish2[2])) then fish2[1] else Double.NaN;
+plot FS5x3u = if (Sign (fish1 - fish1[1]) > Sign (fish1[1] - fish1[2])) then fish1[1] else Double.NaN;
+plot FTu = if (Sign (fish - fish[1]) > Sign (fish[1] - fish[2])) then fish[1] else Double.NaN;
+
+
+plot FS17x5d = if (Sign (fish3 - fish3[1]) < Sign (fish3[1] - fish3[2])) then fish3[1] else Double.NaN;
+plot FS8x5d = if (Sign (fish2 - fish2[1]) < Sign (fish2[1] - fish2[2])) then fish2[1] else Double.NaN;
+plot FS5x3d = if (Sign (fish1 - fish1[1]) < Sign (fish1[1] - fish1[2])) then fish1[1] else Double.NaN;
+plot FTd = if (Sign (fish - fish[1]) < Sign (fish[1] - fish[2])) then fish[1] else Double.NaN;
+
+
+
+FS5x3.SetDefaultColor(GetColor(8));
+FS8x5.SetDefaultColor(GetColor(6));
+FS17x5.SetDefaultColor(Color.MAGENTA);
+FT.SetDefaultColor(Color.CYAN);
+
+FS5x3u.SetDefaultColor(GetColor(8));
+FS8x5u.SetDefaultColor(GetColor(6));
+FS17x5u.SetDefaultColor(Color.MAGENTA);
+FTu.SetDefaultColor(Color.CYAN);
+FS5x3d.SetDefaultColor(GetColor(8));
+FS8x5d.SetDefaultColor(GetColor(6));
+FS17x5d.SetDefaultColor(Color.MAGENTA);
+FTd.SetDefaultColor(Color.CYAN);
+
+FS5x3u.SetPaintingStrategy(PaintingStrategy.ARROW_UP);
+FS8x5u.SetPaintingStrategy(PaintingStrategy.ARROW_UP);
+FS17x5u.SetPaintingStrategy(PaintingStrategy.ARROW_UP);
+FTu.SetPaintingStrategy(PaintingStrategy.ARROW_UP);
+FS5x3d.SetPaintingStrategy(PaintingStrategy.ARROW_DOWN);
+FS8x5d.SetPaintingStrategy(PaintingStrategy.ARROW_DOWN);
+FS17x5d.SetPaintingStrategy(PaintingStrategy.ARROW_DOWN);
+FTd.SetPaintingStrategy(PaintingStrategy.ARROW_DOWN);
+
+FS17x5u.SetLineWeight(5);
+FS8x5u.SetLineWeight(3);
+FS5x3u.SetLineWeight(2);
+FTu.SetLineWeight(1);
+FS17x5d.SetLineWeight(5);
+FS8x5d.SetLineWeight(3);
+FS5x3d.SetLineWeight(2);
+FTd.SetLineWeight(1);
+
+
+plot dummydot1 = if margin == 0 or (IsNaN(FS17x5u) && IsNaN(FS8x5u) && IsNaN(FS5x3u) && IsNaN(FTu)) then Double.NaN else Min(FS17x5, Min(FS8x5, Min(FS5x3, FT))) - margin;
+plot dummydot2 = if margin == 0 or (IsNaN(FS17x5d) && IsNaN(FS8x5d) && IsNaN(FS5x3d) && IsNaN(FTd)) then Double.NaN else Max(FS17x5, Max(FS8x5, Max(FS5x3, FT))) + margin;
+dummydot1.SetLineWeight(1);
+dummydot1.SetPaintingStrategy(PaintingStrategy.POINTS);
+dummydot2.SetLineWeight(1);
+dummydot2.SetPaintingStrategy(PaintingStrategy.POINTS);
+dummydot1.SetDefaultColor (Color.DARK_GRAY);
+dummydot2.SetDefaultColor (Color.DARK_GRAY);

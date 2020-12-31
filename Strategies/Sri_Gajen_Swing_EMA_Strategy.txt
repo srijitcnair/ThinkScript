@@ -1,0 +1,60 @@
+def isBuyingTime=if secondsFromTime(0800)>=0 and secondstillTime(1500)>=0 then 1 else 0;
+def isOpen=if secondsFromTime(0800)>=0 and secondstillTime(1600)>=0 then 1 else 0;
+
+plot sma50 = Average(close,50);
+sma50.SetDefaultColor(Color.Green);
+
+plot sma200 = Average(close,200);
+sma200.SetDefaultColor(Color.Yellow);
+
+def sma50Band = if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 50 else 5;
+
+def RSIPeriod = if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 4 else 2;
+
+def os = 20;
+def ob = 80;
+def RSIVal = RSI(length = RSIPeriod).rsi;
+
+def upPriceMove = if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 50 else 5;
+def stopPriceMove =  if(getSymbol()=="/NQ:XCME" or getSymbol() =="/MNQ:XCME") then 50 else 5;
+
+def MacdAvg = MACD("fast length" = 12, "slow length" = 26).Avg;
+def MacdValue = MACD("fast length" = 12, "slow length" = 26).Value;
+
+###
+def buyCondition = RSIVal > 80 and MacdValue > MacdAvg  and close > sma50
+and close <=(sma50 + sma50Band) 
+and sma50 > sma200 
+#and RSIVal > RSIVal[1] 
+and close > close[1] and close > open and close[1] > open[1];
+
+AddOrder(OrderType.BUY_TO_OPEN,buyCondition , name = "Buy", tickcolor = Color.BLUE, arrowcolor = Color.BLUE, tradeSize = 1, price = open[-1]) ;
+
+def entryPrice = entryPrice();
+
+def sellCondition = high >= (entryPrice + upPriceMove)
+or close <= entryPrice - stopPriceMove;
+
+
+AddOrder(OrderType.SELL_TO_CLOSE,sellCondition 
+#or close <= (entryPrice - stopPriceMove)
+, tickcolor = Color.ORANGE, arrowcolor = Color.ORANGE, name = "Sell", tradeSize = 1, price = open[-1]);
+
+
+def isShortSelling = no;
+### Short
+def sellShortCondition = isShortSelling==yes and RSIVal <20 and MacdValue < MacdAvg  
+and close < sma50
+and close >= sma50 - sma50band
+and sma50 < sma200 
+and close < close[1] and close < open and close[1] < open[1];
+
+AddOrder(OrderType.SELL_TO_OPEN,sellShortCondition , name = "SellShort", tickcolor = Color.BLUE, arrowcolor = Color.ORANGE, tradeSize = 1, price = open[-1]) ;
+
+def shortEntryPrice = entryPrice();
+
+def buyShortCondition = isShortSelling == yes and close > shortEntryPrice + stopPriceMove or low <= (shortEntryPrice - upPriceMove);
+
+AddOrder(OrderType.BUY_TO_CLOSE,buyShortCondition 
+, tickcolor = Color.CYAN, arrowcolor = Color.ORANGE, name = "BuyClose", tradeSize = 1, price = open[-1]);
+

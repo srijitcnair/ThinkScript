@@ -1,0 +1,31 @@
+def onePeriodRoC  = close(period = AggregationPeriod.DAY)[1] - close(period = AggregationPeriod.DAY)[2];
+def RoCRSI = RSI(price = onePeriodRoC, length = 3);
+
+def ll = 30;
+def hh = 70;
+
+#Buy
+
+plot signalHigh = if RoCRSI[1] < ll and  RoCRSI != RoCRSI[1]  then high else Double.NaN;
+#plot signalHigh = Highest(signal, AggregationPeriod.DAY);
+
+signalHigh.SetPaintingStrategy(paintingStrategy = PaintingStrategy.HORIZONTAL);
+signalHigh.SetDefaultColor(Color.CYAN);
+
+plot signalHighArrow = if RoCRSI[1] < ll and  RoCRSI != RoCRSI[1]  then low else Double.NaN;
+signalHighArrow.SetPaintingStrategy(paintingStrategy = PaintingStrategy.ARROW_UP);
+signalHighArrow.SetDefaultColor(Color.CYAN);
+signalHighArrow.SetLineWeight(3);
+
+#Sell
+
+plot signalLow = if RoCRSI[1] > hh and  RoCRSI != RoCRSI[1]  then low else Double.NaN;
+#plot signalHigh = Highest(signal, AggregationPeriod.DAY);
+
+signalLow.SetPaintingStrategy(paintingStrategy = PaintingStrategy.HORIZONTAL);
+signalLow.SetDefaultColor(Color.ORANGE);
+
+plot signalLowArrow = if RoCRSI[1] > hh and  RoCRSI != RoCRSI[1]  then low else Double.NaN;
+signalLowArrow.SetPaintingStrategy(paintingStrategy = PaintingStrategy.ARROW_DOWN);
+signalLowArrow.SetDefaultColor(Color.ORANGE);
+signalLowArrow.SetLineWeight(3);
