@@ -1,0 +1,76 @@
+def rsi = RSI();
+##ADX
+def hiDiff = high - high[1];
+def loDiff = low[1] - low;
+
+def plusDM = if hiDiff > loDiff and hiDiff > 0 then hiDiff else 0;
+def minusDM =  if loDiff > hiDiff and loDiff > 0 then loDiff else 0;
+
+def ATR = MovingAverage(AverageType.WILDERS, TrueRange(high, close, low), 14);
+def diPlus = 100 * MovingAverage(AverageType.WILDERS, plusDM, 14) / ATR;
+def diMinus = 100 * MovingAverage(AverageType.WILDERS, minusDM, 14) / ATR;
+
+def dx = if (diPlus + diMinus > 0) then 100 * AbsValue(diPlus - diMinus) / (diPlus + diMinus) else 0;
+def adxVal = MovingAverage(AverageType.WILDERS, dx, 14);
+
+## MFI
+def mfiVal = Average(MoneyFlow(high, close, low, volume, 14), 1);
+
+## Ultimate Oscillator
+def fastLength = 7;
+def medLength = 14;
+def slowLength = 28;
+
+def trRng = TrueRange(high, close, low);
+
+def trRngFast = Sum(trRng, fastLength);
+def trRngMed = Sum(trRng, medLength);
+def trRngSlow = Sum(trRng, slowLength);
+
+def diff = close - Min(close[1], low);
+
+def diffFast = Sum(diff, fastLength);
+def diffMed = Sum(diff, medLength);
+def diffSlow = Sum(diff, slowLength);
+
+def factorFast = slowLength / fastLength;
+def factorMed = slowLength / medLength;
+
+def valFast = (diffFast / trRngFast) * factorFast;
+def valMed = (diffMed / trRngMed) * factorMed;
+def valSlow = (diffSlow / trRngSlow);
+
+def ultOsc = if trRngFast == 0 or trRngMed == 0 or trRngSlow == 0 then 0 
+else (valFast + valMed + valSlow) / (factorFast + factorMed + 1);
+
+#Buy condition
+def buyCondition = diPlus > (diMinus + 10)
+and diPlus-diMinus < 20
+and diPlus > diPlus[1]
+and diMinus < diMinus[1]
+and (
+#diPlus[6] < diMinus[6] or
+#diPlus[5] < diMinus[5] or 
+diPlus[4] < diMinus[4] or
+diPlus[3] < diMinus[3] or
+diPlus[2] < diMinus[2])
+and ultOsc > ultOsc[1] and ultOsc > ultOsc[2]
+and rsi > rsi[1]
+and mfiVal > (mfiVal[2] + 2);
+
+AddOrder(OrderType.BUY_TO_OPEN,buyCondition , name = "Buy", tickcolor = Color.CYAN, arrowcolor = Color.CYAN, tradeSize = 1, price = open[-1]) ;
+
+def entryPrice = entryPrice();
+
+def exitStopPrice =if(entryPrice <50) then  entryPrice * .9 else if (entryPrice >= 50 and entryPrice <500 ) then  entryPrice * .96 else  entryPrice * .98;
+
+
+def exitPrice =if(entryPrice <50) then  entryPrice * 1.05 else if (entryPrice >= 50 and entryPrice <500 ) then  entryPrice * 1.02 else  entryPrice * 1.01;
+
+
+def sellCondition = 
+ high >= exitPrice
+or low <= exitStopPrice;
+
+AddOrder(OrderType.SELL_TO_CLOSE, sellCondition
+, tickcolor = Color.ORANGE, arrowcolor = Color.ORANGE, name = "Sell", tradeSize = 1, price = open[-1]);
